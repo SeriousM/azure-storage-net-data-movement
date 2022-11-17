@@ -73,13 +73,12 @@ namespace Microsoft.Azure.Storage.DataMovement
         /// </summary>
         private long outstandingTasks;
 
-        private ReaderWriterLockSlim progressUpdateLock = new ReaderWriterLockSlim();
+        private ReaderWriterLockSlim progressUpdateLock;
 
         /// <summary>
         /// Job queue to invoke ShouldTransferCallback.
         /// </summary>
-        private TaskQueue<Tuple<SingleObjectTransfer, TransferEntry>> shouldTransferQueue
-            = new TaskQueue<Tuple<SingleObjectTransfer, TransferEntry>>(TransferManager.Configurations.ParallelOperations * Constants.ListSegmentLengthMultiplier);
+        private TaskQueue<Tuple<SingleObjectTransfer, TransferEntry>> shouldTransferQueue;
 
         /// <summary>
         /// Storres sub transfers.
@@ -490,6 +489,20 @@ namespace Microsoft.Azure.Storage.DataMovement
             }
 
             this.enumerationResetEvent = new AutoResetEvent(true);
+
+            if (this.shouldTransferQueue != null)
+            {
+                this.shouldTransferQueue.Dispose();
+            }
+
+            this.shouldTransferQueue = new TaskQueue<Tuple<SingleObjectTransfer, TransferEntry>>(TransferManager.Configurations.ParallelOperations * Constants.ListSegmentLengthMultiplier);
+
+            if (this.progressUpdateLock != null)
+            {
+              this.progressUpdateLock.Dispose();
+            }
+
+            this.progressUpdateLock = new ReaderWriterLockSlim();
 
             this.enumerationTasksLimitManager = new EnumerationTasksLimitManager(this.MaxTransferConcurrency, this.enumerationResetEvent, Constants.DefaultEnumerationWaitTimeOut, this.DirectoryContext?.TransferStuckTimeout);
 
